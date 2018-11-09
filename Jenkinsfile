@@ -22,12 +22,8 @@ pipeline {
         stage('plan') {
             steps {
                 sh 'terraform plan -out=plan -input=false'
+                input(message: "Do you want to apply this plan?", ok: "yes")
             }
-        }
-        stage('verification'){
-          steps{
-            input(message: "Do you want to apply this plan?", ok: "yes")
-          }
         }
         stage('apply') {
             steps {
