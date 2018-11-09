@@ -11,6 +11,9 @@ pipeline {
         TF_VAR_my_public_key_path = credentials('ssh-public-key')
         TF_VAR_my_private_key_path = credentials('ssh-private-key')
     }
+    triggers {
+         pollSCM('H/5 * * * *')
+    }
     stages {
         stage('init') {
             steps {
@@ -19,18 +22,26 @@ pipeline {
                 sh 'terraform init -input=false'
             }
         }
+        stage('verify') {
+            when { env.BRANCH_NAME == 'feat*'}
+            steps {
+                sh 'terraform verify'
+            }
+        }
+        
         stage('plan') {
+            when { env.BRANCH_NAME == 'dev*'}
             steps {
                 sh 'terraform plan -out=plan -input=false'
                 input(message: "Do you want to apply this plan?", ok: "yes")
             }
         }
         stage('apply') {
-            steps {
-                sh 'terraform apply -input=false plan'
+            when { env.BRANCH_NAME == 'dev*'}
             }
         }
         stage('destroy') {
+            when { env.BRANCH_NAME == 'dev*'}
             steps {
                 sh 'terraform destroy -force -input=false'
             }
