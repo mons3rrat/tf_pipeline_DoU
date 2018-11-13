@@ -31,7 +31,7 @@ readProperties = loadConfigurationFile 'configFile'
             when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
             steps {
                 createPR "jenkinsdou", "PR Created Automatically by Jenkins", "dev", env.BRANCH_NAME, "gmlp"
-                slackSend baseUrl: 'https://digitalonus.slack.com/services/hooks/jenkins-ci/', token: readProperties.stlak-token, channel: '#devops_training_nov', color: '#00FF00', message: "Please review and approve PR to merge changes to dev branch : https://github.com/gmlp/tf_pipeline_DoU/pulls"
+                slackSend baseUrl: 'https://digitalonus.slack.com/services/hooks/jenkins-ci/', channel: '#devops_training_nov', color: '#00FF00', message: "Please review and approve PR to merge changes to dev branch : https://github.com/gmlp/tf_pipeline_DoU/pulls"
             }
         }
 
@@ -57,12 +57,12 @@ readProperties = loadConfigurationFile 'configFile'
     }
     post {
       success {
-        slackSend baseUrl: 'https://digitalonus.slack.com/services/hooks/jenkins-ci/', token: readProperties.stlak-token, channel: '#devops_training_nov', color: '#00FF00', message: "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})"
+        slackSend baseUrl: 'https://digitalonus.slack.com/services/hooks/jenkins-ci/', channel: '#devops_training_nov', color: '#00FF00', message: "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})"
       }
       failure {
         script{
           def commiter_user = sh "git log -1 --format='%ae'"
-          slackSend baseUrl: 'https://digitalonus.slack.com/services/hooks/jenkins-ci/', token: readProperties.stlak-token, channel: '#devops_training_nov', color: '#00FF00', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})"
+          slackSend baseUrl: 'https://digitalonus.slack.com/services/hooks/jenkins-ci/', channel: '#devops_training_nov', color: '#00FF00', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})"
         }
       }
     }
