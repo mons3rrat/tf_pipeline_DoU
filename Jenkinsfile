@@ -37,7 +37,7 @@ readProperties = loadConfigurationFile 'configFile'
         stage('plan') {
             when { expression{ env.BRANCH_NAME ==~ /dev.*/ } }
             steps {
-                sh 'cd terrform && terraform plan -out=plan -input=false'
+                sh 'cd terraform && terraform plan -out=plan -input=false'
                 emailext subject: "Approval manual steps", to: readProperties.emailApprovers, body:"Please approve or abort plant promotion using the enclosed link"
                 input(message: "Do you want to apply this plan?", ok: "yes")
             }
