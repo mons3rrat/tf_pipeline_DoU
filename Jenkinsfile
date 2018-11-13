@@ -3,6 +3,7 @@ readProperties = loadConfigurationFile 'configFile'
     agent {
         docker {
             image readProperties.image
+            args '-v tf_plugins:/plugins'
         }
     }
     environment {
@@ -11,6 +12,7 @@ readProperties = loadConfigurationFile 'configFile'
         TF_VAR_my_public_key_path = credentials('ssh-public-key')
         TF_VAR_my_private_key_path = credentials('ssh-private-key')
         TOKEN = credentials('gh-token')
+        TF_PLUGIN_CACHE_DIR = '/plugins'
     }
     triggers {
          pollSCM('H/5 * * * *')
