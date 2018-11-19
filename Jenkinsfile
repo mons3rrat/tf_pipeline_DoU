@@ -70,7 +70,7 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
             when { expression{ env.BRANCH_NAME ==~ /dev.*/ || env.BRANCH_NAME ==~ /PR.*/ }}
 
             steps {
-                stackRollout readProperties.stackName readProperties.stackFile
+                stackRollout readProperties.stackName, readProperties.stackFile
             }
 
         }
