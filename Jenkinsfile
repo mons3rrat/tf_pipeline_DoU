@@ -1,3 +1,5 @@
+import java.text.SimpleDateFormat
+
 readProperties = loadConfigurationFile 'configFile'
 currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) + "-" + env.BUILD_NUMBER
  pipeline {
