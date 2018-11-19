@@ -1,8 +1,9 @@
 readProperties = loadConfigurationFile 'configFile'
+currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) + "-" + env.BUILD_NUMBER
  pipeline {
     agent {
         docker {
-            image readProperties.image
+            image readProperties.imagePipeline
             args '-v tf_plugins:/plugins'
         }
     }
@@ -18,6 +19,14 @@ readProperties = loadConfigurationFile 'configFile'
          pollSCM('H/5 * * * *')
     }
     stages {
+        stage('test & build'){
+            when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
+            buildDockerImage readProperties.image
+        }
+        stage('publish image'){
+            when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
+            pushDockerImage readProperties.image
+        }
         stage('init') {
             steps {
                 sh 'cd terraform && terraform init -input=false'
@@ -49,6 +58,20 @@ readProperties = loadConfigurationFile 'configFile'
             steps {
                 sh 'cd terraform && terraform apply -input=false plan'
             }
+        }
+        stage('deploy app'){
+            when { expression{ env.BRANCH_NAME ==~ /dev.*/ } }
+            steps {
+                echo 'deploying'
+            }
+
+        }
+        stage('Integration Test'){
+            when { expression{ env.BRANCH_NAME ==~ /dev.*/ } }
+            steps {
+                echo 'running integration test'
+            }
+
         }
         stage('destroy') {
             when { expression{ env.BRANCH_NAME ==~ /dev.*/ } }
