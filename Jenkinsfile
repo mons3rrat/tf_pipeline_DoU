@@ -2,6 +2,7 @@ import java.text.SimpleDateFormat
 
 readProperties = loadConfigurationFile 'configFile'
 currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) + "-" + env.BUILD_NUMBER
+
  pipeline {
     agent {
         docker {
@@ -53,34 +54,35 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
         }
 
         stage('plan') {
-            when { expression{ env.BRANCH_NAME ==~ /dev.*/ } }
+            when { expression{ env.BRANCH_NAME ==~ /dev.*/ || env.BRANCH_NAME ==~ /PR.*/ }}
             steps {
                 sh 'cd terraform && terraform plan -out=plan -input=false'
                 input(message: "Do you want to apply this plan?", ok: "yes")
             }
         }
         stage('apply') {
-            when { expression{ env.BRANCH_NAME ==~ /dev.*/ } }
+            when { expression{ env.BRANCH_NAME ==~ /dev.*/ || env.BRANCH_NAME ==~ /PR.*/ }}
             steps {
                 sh 'cd terraform && terraform apply -input=false plan'
             }
         }
         stage('deploy app'){
-            when { expression{ env.BRANCH_NAME ==~ /dev.*/ } }
+            when { expression{ env.BRANCH_NAME ==~ /dev.*/ || env.BRANCH_NAME ==~ /PR.*/ }}
+
             steps {
-                echo 'deploying'
+                stackRollout readProperties.stackName
             }
 
         }
         stage('Integration Test'){
-            when { expression{ env.BRANCH_NAME ==~ /dev.*/ } }
+            when { expression{ env.BRANCH_NAME ==~ /dev.*/ || env.BRANCH_NAME ==~ /PR.*/ }}
             steps {
                 echo 'running integration test'
             }
 
         }
         stage('destroy') {
-            when { expression{ env.BRANCH_NAME ==~ /dev.*/ } }
+            when { expression{ env.BRANCH_NAME ==~ /skip.*/ } }
             steps {
                 sh 'cd terraform && terraform destroy -force -input=false'
             }
@@ -93,8 +95,11 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
       failure {
         script{
           def commiter_user = sh "git log -1 --format='%ae'"
-          slackSend baseUrl: readProperties.slack, channel: '#devops_training_nov', color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})"
+          // slackSend baseUrl: readProperties.slack, channel: '#devops_training_nov', color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})"
         }
+      }
+      always {
+            sh "docker system prune -f"
       }
     }
 }

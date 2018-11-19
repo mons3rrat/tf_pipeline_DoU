@@ -40,7 +40,7 @@ resource "aws_security_group" "sg" {
 
 resource "aws_instance" "docker" {
   ami                    = "${data.aws_ami.ubuntu.id}"
-  instance_type          = "t2.micro"
+  instance_type          = "t2.medium"
   key_name               = "${aws_key_pair.deployer.key_name}"
   vpc_security_group_ids = ["${aws_security_group.sg.id}"]
 
@@ -66,8 +66,9 @@ resource "null_resource" "install_docker" {
       "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
       "sudo add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
       "sudo apt-get update",
-      "sudo apt-get install -y docker-ce=17.06.2~ce-0~ubuntu",
-      "sudo usermod -a ubuntu -G docker"
+      "sudo apt-get install -y docker-ce",
+      "sudo usermod -a ubuntu -G docker",
+      "sudo docker swarm init"
     ]
   }
 
