@@ -23,11 +23,15 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
     stages {
         stage('test & build'){
             when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
-            buildDockerImage readProperties.image
+            steps {
+                buildDockerImage readProperties.image
+            }
         }
         stage('publish image'){
             when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
-            pushDockerImage readProperties.image
+            steps {
+                pushDockerImage readProperties.image
+            }
         }
         stage('init') {
             steps {
