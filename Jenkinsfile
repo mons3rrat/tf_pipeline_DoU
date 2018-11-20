@@ -22,11 +22,18 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
          pollSCM('H/5 * * * *')
     }
     stages {
-        stage('test & build'){
-            when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
-            steps {
+        stage('Build, Test and Validate'){
+          when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
+          steps{
+            parallel(
+              Step1:  {
                 buildDockerImage readProperties.image
-            }
+              },
+              Step2:  {
+                sh 'cd terraform && terraform validate'
+              }
+            )
+          }
         }
         stage('publish image'){
             when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
@@ -37,12 +44,6 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
         stage('init') {
             steps {
                 sh 'cd terraform && terraform init -input=false'
-            }
-        }
-        stage('validate') {
-            when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
-            steps {
-                sh 'cd terraform && terraform validate'
             }
         }
         stage('generate pr') {
