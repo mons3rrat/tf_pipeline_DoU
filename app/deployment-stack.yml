@@ -1,0 +1,21 @@
+version: "3.1"
+
+services:
+
+  app:
+    image: gmlpdou/contact_app:${TAG:-latest}
+    ports:
+      - 8081:8080
+    networks:
+      - default
+    deploy:
+      resources:
+        reservations:
+          memory: 200M
+        limits:
+          memory: 300M
+
+networks:
+  default:
+    external: false
+

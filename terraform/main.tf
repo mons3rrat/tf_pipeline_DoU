@@ -38,39 +38,44 @@ resource "aws_security_group" "sg" {
   }
 }
 
-resource "aws_instance" "nginx" {
+resource "aws_instance" "docker" {
   ami                    = "${data.aws_ami.ubuntu.id}"
-  instance_type          = "t2.micro"
+  instance_type          = "t2.medium"
   key_name               = "${aws_key_pair.deployer.key_name}"
   vpc_security_group_ids = ["${aws_security_group.sg.id}"]
 
+}
+
+resource "null_resource" "install_docker" {
+  triggers {
+    instance_id = "${aws_instance.docker.id}"
+  }
+
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = "${file("${var.my_private_key_path}")}"
+    host = "${aws_instance.docker.public_ip}"
+  }
   provisioner "remote-exec" {
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = "${file("${var.my_private_key_path}")}"
-    }
 
     inline = [
-      "sudo apt update",
-      "sudo apt install -y nginx",
-      "sudo apt update",
+      "sudo apt-get clean",
+      "sudo apt-get update",
+      "sudo apt-get install -y apt-transport-https ca-certificates",
+      "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
+      "sudo add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
+      "sudo apt-get update",
+      "sudo apt-get install -y docker-ce",
+      "sudo usermod -a ubuntu -G docker",
+      "sudo docker swarm init"
     ]
   }
+
 }
 
-resource "aws_instance" "postgresql-server" {
-  ami                    = "${data.aws_ami.ubuntu.id}"
-  instance_type          = "t2.micro"
-  key_name               = "${aws_key_pair.deployer.key_name}"
-  vpc_security_group_ids = ["${aws_security_group.sg.id}"]
-  user_data              = "${file("install.sh")}"
-}
 
-output "nginx-ip" {
-  value = "${aws_instance.nginx.public_ip}"
-}
 
-output "postgresql-ip" {
-  value = "${aws_instance.postgresql-server.public_ip}"
+output "docker-ip" {
+  value = "${aws_instance.docker.public_ip}"
 }

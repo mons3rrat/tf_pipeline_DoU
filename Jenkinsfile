@@ -1,8 +1,12 @@
+import java.text.SimpleDateFormat
+
 readProperties = loadConfigurationFile 'configFile'
+currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) + "-" + env.BUILD_NUMBER
+
  pipeline {
     agent {
         docker {
-            image readProperties.image
+            image readProperties.imagePipeline
             args '-v tf_plugins:/plugins'
         }
     }
@@ -18,6 +22,18 @@ readProperties = loadConfigurationFile 'configFile'
          pollSCM('H/5 * * * *')
     }
     stages {
+        stage('test & build'){
+            when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
+            steps {
+                buildDockerImage readProperties.image
+            }
+        }
+        stage('publish image'){
+            when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
+            steps {
+                pushDockerImage readProperties.image
+            }
+        }
         stage('init') {
             steps {
                 sh 'cd terraform && terraform init -input=false'
@@ -38,20 +54,35 @@ readProperties = loadConfigurationFile 'configFile'
         }
 
         stage('plan') {
-            when { expression{ env.BRANCH_NAME ==~ /dev.*/ } }
+            when { expression{ env.BRANCH_NAME ==~ /dev.*/ || env.BRANCH_NAME ==~ /PR.*/ }}
             steps {
                 sh 'cd terraform && terraform plan -out=plan -input=false'
                 input(message: "Do you want to apply this plan?", ok: "yes")
             }
         }
         stage('apply') {
-            when { expression{ env.BRANCH_NAME ==~ /dev.*/ } }
+            when { expression{ env.BRANCH_NAME ==~ /dev.*/ || env.BRANCH_NAME ==~ /PR.*/ }}
             steps {
                 sh 'cd terraform && terraform apply -input=false plan'
             }
         }
+        stage('deploy app'){
+            when { expression{ env.BRANCH_NAME ==~ /dev.*/ || env.BRANCH_NAME ==~ /PR.*/ }}
+
+            steps {
+                stackRollout readProperties.stackName, readProperties.stackFile
+            }
+
+        }
+        stage('Integration Test'){
+            when { expression{ env.BRANCH_NAME ==~ /dev.*/ || env.BRANCH_NAME ==~ /PR.*/ }}
+            steps {
+                echo 'running integration test'
+            }
+
+        }
         stage('destroy') {
-            when { expression{ env.BRANCH_NAME ==~ /dev.*/ } }
+            when { expression{ env.BRANCH_NAME ==~ /skip.*/ } }
             steps {
                 sh 'cd terraform && terraform destroy -force -input=false'
             }
@@ -66,6 +97,9 @@ readProperties = loadConfigurationFile 'configFile'
           def commiter_user = sh "git log -1 --format='%ae'"
           slackSend baseUrl: readProperties.slack, channel: '#devops_training_nov', color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})"
         }
+      }
+      always {
+            sh "docker system prune -f"
       }
     }
 }
