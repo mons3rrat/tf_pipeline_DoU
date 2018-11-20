@@ -22,18 +22,11 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
          pollSCM('H/5 * * * *')
     }
     stages {
-        stage('Build, Test and Validate'){
-          when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
-          steps{
-            parallel(
-              Step1:  {
+        stage('test & build'){
+            when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
+            steps {
                 buildDockerImage readProperties.image
-              },
-              Step2:  {
-                sh 'cd terraform && terraform validate'
-              }
-            )
-          }
+            }
         }
         stage('publish image'){
             when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
@@ -44,6 +37,12 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
         stage('init') {
             steps {
                 sh 'cd terraform && terraform init -input=false'
+            }
+        }
+        stage('validate') {
+            when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
+            steps {
+                sh 'cd terraform && terraform validate'
             }
         }
         stage('generate pr') {
@@ -96,7 +95,7 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
       failure {
         script{
           def commiter_user = sh "git log -1 --format='%ae'"
-          // slackSend baseUrl: readProperties.slack, channel: '#devops_training_nov', color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})"
+          slackSend baseUrl: readProperties.slack, channel: '#devops_training_nov', color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})"
         }
       }
       always {
