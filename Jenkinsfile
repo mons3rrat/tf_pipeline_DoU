@@ -16,41 +16,48 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
         TF_VAR_my_public_key_path = credentials('ssh-public-key')
         TF_VAR_my_private_key_path = credentials('ssh-private-key')
         TOKEN = credentials('gh-token')
+        SONAR_TOKEN = credentials('sonar-token') 
         TF_PLUGIN_CACHE_DIR = '/plugins'
     }
     triggers {
          pollSCM('H/5 * * * *')
     }
     stages {
-        stage('Build, Test and Validate'){
+        stage('Test & Build'){
           when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
           steps{
             parallel(
-              Step1:  {
-                buildDockerImage readProperties.image
-              },
-              Step2:  {
-                sh 'cd terraform && terraform validate'
-              }
-            )
+                Step1:  {
+                    buildDockerImage readProperties.image,
+                     readProperties.sonarServer
+                },
+                Step2:  {
+                    dir("terraform"){
+                        sh 'terraform init -input=false'
+                        sh 'terraform validate'
+                    }
+                }
+            )  
           }
         }
-        stage('publish image'){
+        stage('Publish & Generate PR'){
             when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
-            steps {
-                pushDockerImage readProperties.image
-            }
-        }
-        stage('init') {
-            steps {
-                sh 'cd terraform && terraform init -input=false'
-            }
-        }
-        stage('generate pr') {
-            when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
-            steps {
-                createPR "jenkinsdou", readProperties.title, "dev", env.BRANCH_NAME, "gmlp"
-                slackSend baseUrl: readProperties.slack, channel: '#devops_training_nov', color: '#00FF00', message: "Please review and approve PR to merge changes to dev branch : https://github.com/gmlp/tf_pipeline_DoU/pulls"
+            steps{
+                parallel(
+                    Step1: {
+                        pushDockerImage readProperties.image
+                    },
+                    Step2: {
+                        createPR "jenkinsdou", 
+                        readProperties.title, 
+                        "dev", env.BRANCH_NAME,
+                        "gmlp"
+                        slackSend baseUrl: readProperties.slack,
+                        channel: '#devops_training_nov',
+                        color: '#00FF00', 
+                        message: "Please review and approve PR to merge changes to dev branch : https://github.com/gmlp/tf_pipeline_DoU/pulls"
+                    }
+                )
             }
         }
 
