@@ -24,7 +24,10 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
     }
     stages {
         stage('Test & Build'){
-          when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
+          when { 
+              expression{ env.BRANCH_NAME ==~ /dev.*/ || 
+                  env.BRANCH_NAME ==~ /PR.*/ || env.BRANCH_NAME ==~ /feat.*/ }
+          }
           steps{
             parallel(
                 Step1:  {
@@ -40,38 +43,34 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
             )  
           }
         }
-        stage('Publish & Generate PR'){
+        stage('Publish Image'){
+            when { 
+                expression{ env.BRANCH_NAME ==~ /dev.*/ || 
+                    env.BRANCH_NAME ==~ /PR.*/ || env.BRANCH_NAME ==~ /feat.*/ }
+            }
+
+            steps {
+                pushDockerImage readProperties.image
+            }
+        }
+        stage('Generate PR'){
             when { expression{ env.BRANCH_NAME ==~ /feat.*/ } }
             steps{
-                parallel(
-                    Step1: {
-                        pushDockerImage readProperties.image
-                    },
-                    Step2: {
-                        createPR "jenkinsdou", 
-                        readProperties.title, 
-                        "dev", env.BRANCH_NAME,
-                        "gmlp"
-                        slackSend baseUrl: readProperties.slack,
-                        channel: '#devops_training_nov',
-                        color: '#00FF00', 
-                        message: "Please review and approve PR to merge changes to dev branch : https://github.com/gmlp/tf_pipeline_DoU/pulls"
-                    }
-                )
+                createPR "jenkinsdou", 
+                readProperties.title, 
+                "dev", env.BRANCH_NAME,
+                "gmlp"
+                slackSend baseUrl: readProperties.slack,
+                channel: '#devops_training_nov',
+                color: '#00FF00', 
+                message: "Please review and approve PR to merge changes to dev branch : https://github.com/gmlp/tf_pipeline_DoU/pulls"
             }
         }
 
-        stage('plan') {
+        stage('updateInfra') {
             when { expression{ env.BRANCH_NAME ==~ /dev.*/ || env.BRANCH_NAME ==~ /PR.*/ }}
             steps {
-                sh 'cd terraform && terraform plan -out=plan -input=false'
-                input(message: "Do you want to apply this plan?", ok: "yes")
-            }
-        }
-        stage('apply') {
-            when { expression{ env.BRANCH_NAME ==~ /dev.*/ || env.BRANCH_NAME ==~ /PR.*/ }}
-            steps {
-                sh 'cd terraform && terraform apply -input=false plan'
+                updateInfra()
             }
         }
         stage('deploy app'){
@@ -82,15 +81,8 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
             }
 
         }
-        stage('Integration Test'){
-            when { expression{ env.BRANCH_NAME ==~ /dev.*/ || env.BRANCH_NAME ==~ /PR.*/ }}
-            steps {
-                echo 'running integration test'
-            }
-
-        }
         stage('destroy') {
-            when { expression{ env.BRANCH_NAME ==~ /skip.*/ } }
+            when { expression{ env.BRANCH_NAME ==~ /dev.*/ || env.BRANCH_NAME ==~ /PR.*/ }}
             steps {
                 sh 'cd terraform && terraform destroy -force -input=false'
             }
