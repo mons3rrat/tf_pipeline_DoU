@@ -19,7 +19,7 @@ resource "aws_key_pair" "deployer" {
 }
 
 
-resource "aws_security_group" "sg" {
+resource "aws_security_group" "sedenom" {
   name = "sedenom-ssh"
 
   // SSH
