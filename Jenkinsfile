@@ -35,10 +35,7 @@ currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) +
                      readProperties.sonarServer
                 },
                 Step2:  {
-                    dir("terraform"){
-                        sh 'terraform init -input=false'
-                        sh 'terraform validate'
-                    }
+                    verifyInfra()
                 }
             )  
           }
