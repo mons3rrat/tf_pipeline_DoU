@@ -20,7 +20,7 @@ resource "aws_key_pair" "deployer" {
 
 
 resource "aws_security_group" "sedenom" {
-  name = "sedenom-ssh"
+  name = "gmlp-ssh"
 
   // SSH
   ingress {
