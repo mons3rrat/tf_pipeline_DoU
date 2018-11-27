@@ -5,8 +5,9 @@ TODO:
 - [ ] Create Readme file
 - [x] Add Java Application
 - [x] Run Unittest in docker multi-stage build
-- [ ] include Parallel steps for docker and terraform
-- [ ] integrate sonar cube
+- [x] include Parallel steps for docker and terraform
+- [x] integrate & config sonarqube
+- [x] integrate & config artifact repository
 - [ ] improvement: pipeline step to check if terraform files are fmted
 - [ ] improvement: if there is not diff in plan step, don't ask for approval and skip apply step.
 
